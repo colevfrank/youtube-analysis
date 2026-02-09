@@ -1,0 +1,7 @@
+# YouTube data exports
+watch-history.html
+search-history.html
+*.csv
+
+# macOS
+.DS_Store
