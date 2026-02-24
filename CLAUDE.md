@@ -28,8 +28,15 @@ cd youtube-analysis && uv sync
 
 ## Architecture
 
-- `youtube-analysis/main.py` — entry point
-- `youtube-analysis/pyproject.toml` — project config; current deps: pandas, requests
+- `youtube-analysis/main.py` — parses watch-history.html → `watch-history.csv`
+- `youtube-analysis/enrich.py` — enriches video IDs via YouTube Data API v3 → `video-metadata.csv`
+- `youtube-analysis/pyproject.toml` — project config; deps: pandas, requests, python-dotenv
+
+### Data Files (git-ignored)
+
+- `watch-history.csv` — one row per watch event (title, video_id, channel, timestamp, type)
+- `video-metadata.csv` — one row per unique video ID (duration, views, likes, category, tags, etc.)
+- Merge for analysis: `watch.merge(meta, on="video_id", how="left")`
 
 ## Data Notes
 

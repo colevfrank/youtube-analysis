@@ -3,5 +3,11 @@ watch-history.html
 search-history.html
 *.csv
 
+# Environment / secrets
+.env
+
+# Python
+__pycache__/
+
 # macOS
 .DS_Store
