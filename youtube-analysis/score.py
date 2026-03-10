@@ -184,30 +184,47 @@ Respond with ONLY a JSON object (no markdown, no preamble):
 """
 
 
+def _safe_int(val) -> str:
+    """Format a value as a comma-separated int, or 'N/A' if missing/NaN."""
+    try:
+        f = float(val)
+        if f != f:  # NaN check
+            return "N/A"
+        return f"{int(f):,}"
+    except (TypeError, ValueError):
+        return "N/A"
+
+
 def build_video_prompt(row: dict) -> str:
     """Build the user message for a single video evaluation."""
     # Format engagement metrics
-    views = f"{int(row.get('view_count', 0)):,}" if row.get("view_count") else "N/A"
-    likes = f"{int(row.get('like_count', 0)):,}" if row.get("like_count") else "N/A"
-    comments = f"{int(row.get('comment_count', 0)):,}" if row.get("comment_count") else "N/A"
+    views = _safe_int(row.get("view_count"))
+    likes = _safe_int(row.get("like_count"))
+    comments = _safe_int(row.get("comment_count"))
 
     # Duration
     dur_sec = row.get("duration_seconds", 0)
-    if dur_sec and float(dur_sec) > 0:
-        mins, secs = divmod(int(float(dur_sec)), 60)
+    try:
+        dur_val = float(dur_sec)
+        if dur_val != dur_val or dur_val <= 0:
+            raise ValueError
+        mins, secs = divmod(int(dur_val), 60)
         hrs, mins = divmod(mins, 60)
         duration = f"{hrs}h{mins:02d}m{secs:02d}s" if hrs else f"{mins}m{secs:02d}s"
-    else:
+    except (TypeError, ValueError):
         duration = "N/A"
 
-    # Tags
+    # Tags (NaN from CSV comes through as float)
     tags = row.get("tags", "")
-    tag_str = ", ".join(tags.split("|")[:15]) if tags else "None"
+    if not isinstance(tags, str) or not tags:
+        tag_str = "None"
+    else:
+        tag_str = ", ".join(tags.split("|")[:15])
 
-    # Truncate description
-    desc = row.get("description", "") or ""
-    if len(desc) > 800:
-        desc = desc[:800] + "..."
+    # Truncate description (same NaN guard)
+    desc = row.get("description", "")
+    if not isinstance(desc, str):
+        desc = ""
 
     return f"""\
 Evaluate this YouTube video:
