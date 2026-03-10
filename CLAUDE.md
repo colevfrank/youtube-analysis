@@ -30,7 +30,8 @@ cd youtube-analysis && uv sync
 
 - `youtube-analysis/main.py` — parses watch-history.html → `watch-history.csv`
 - `youtube-analysis/enrich.py` — enriches video IDs via YouTube Data API v3 → `video-metadata.csv`
-- `youtube-analysis/pyproject.toml` — project config; deps: pandas, requests, python-dotenv
+- `youtube-analysis/analyze.py` — merges CSVs, prints terminal report, saves PNG charts (monthly hours, yearly events, category breakdown)
+- `youtube-analysis/pyproject.toml` — project config; deps: pandas, requests, python-dotenv, matplotlib
 
 ### Data Files (git-ignored)
 
