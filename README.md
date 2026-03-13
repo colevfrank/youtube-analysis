@@ -1,6 +1,6 @@
 # YouTube Watch History Analysis
 
-I've been watching YouTube since ~2010. That's roughly 15 years of data sitting in a Google Takeout export — what I was into in college, what I binge-watched during COVID, how my interests have shifted over time. This project started as curiosity about what that history actually looks like when you lay it all out, and evolved into an attempt to answer a harder question: of the thousands of videos I've watched, which ones were actually worth my time?
+I've been watching YouTube since ~2010. That's roughly 15 years of data sitting in a Google Takeout export — what I was into in college, what I binge-watched during COVID, how my interests have shifted over time. This project started as curiosity about what that history actually looks like when you lay it all out, and evolved into an attempt to answer a harder question: of the thousands of videos I've watched, which ones were actually worth my time? Also an exercise in building an agentic pipeline.
 
 ## The pipeline
 
