@@ -50,7 +50,7 @@ VIDEO_METADATA_CSV = DATA_DIR / "video-metadata.csv"
 TRIAGE_REPORTS_CSV = DATA_DIR / "triage-reports.csv"
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
-MODEL = "claude-sonnet-4-20250514"
+MODEL = "claude-sonnet-4-6"
 MAX_TOOL_ROUNDS = 6  # cap agentic loop iterations
 
 
@@ -535,7 +535,7 @@ def run_triage(api_key: str, video_row: dict) -> dict | None:
 
             if tool_name == "submit_assessment":
                 assessment = tool_input
-                tools_used.append(f"submit_assessment")
+                tools_used.append("submit_assessment")
                 # Still need to send a tool_result to complete the turn
                 tool_results.append({
                     "type": "tool_result",
@@ -568,7 +568,7 @@ def run_triage(api_key: str, video_row: dict) -> dict | None:
 
     if assessment:
         assessment["tools_used"] = tools_used
-        assessment["tool_rounds"] = len(tools_used)
+        assessment["tool_rounds"] = len([t for t in tools_used if t != "submit_assessment"])
 
     return assessment
 
