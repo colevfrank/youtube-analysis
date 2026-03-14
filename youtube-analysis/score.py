@@ -245,7 +245,7 @@ Description:
 # ---------------------------------------------------------------------------
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
-MODEL = "claude-sonnet-4-20250514"
+MODEL = "claude-sonnet-4-6"
 RATE_LIMIT_DELAY = 1.0  # seconds between requests
 
 
@@ -277,67 +277,69 @@ def call_claude(api_key: str, video_row: dict) -> dict | None:
         ],
     }
 
-    try:
-        resp = requests.post(
-            ANTHROPIC_API_URL, headers=headers, json=payload, timeout=30
-        )
+    for attempt in range(3):
+        try:
+            resp = requests.post(
+                ANTHROPIC_API_URL, headers=headers, json=payload, timeout=30
+            )
 
-        if resp.status_code == 429:
-            # Rate limited — wait and signal retry
-            retry_after = float(resp.headers.get("retry-after", 10))
-            print(f"  Rate limited, waiting {retry_after:.0f}s...")
-            time.sleep(retry_after)
-            return call_claude(api_key, video_row)  # single retry
+            if resp.status_code == 429:
+                retry_after = float(resp.headers.get("retry-after", 10))
+                print(f"  Rate limited, waiting {retry_after:.0f}s...")
+                time.sleep(retry_after)
+                continue
 
-        resp.raise_for_status()
-        data = resp.json()
+            resp.raise_for_status()
+            data = resp.json()
 
-        # Extract text from response
-        text = ""
-        for block in data.get("content", []):
-            if block.get("type") == "text":
-                text += block["text"]
+            # Extract text from response
+            text = ""
+            for block in data.get("content", []):
+                if block.get("type") == "text":
+                    text += block["text"]
 
-        # Parse JSON from response (strip markdown fences if present)
-        text = text.strip()
-        if text.startswith("```"):
-            text = text.split("\n", 1)[1].rsplit("```", 1)[0]
-        scores = json.loads(text)
+            # Parse JSON from response (strip markdown fences if present)
+            text = text.strip()
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1].rsplit("```", 1)[0]
+            scores = json.loads(text)
 
-        # Validate
-        for dim in QUALITY_DIMENSIONS:
-            if dim not in scores or not isinstance(scores[dim], int):
-                raise ValueError(f"Missing or invalid score for {dim}")
-            scores[dim] = max(1, min(5, scores[dim]))
+            # Validate
+            for dim in QUALITY_DIMENSIONS:
+                if dim not in scores or not isinstance(scores[dim], int):
+                    raise ValueError(f"Missing or invalid score for {dim}")
+                scores[dim] = max(1, min(5, scores[dim]))
 
-        # Compute composite
-        dim_scores = [scores[dim] for dim in QUALITY_DIMENSIONS]
-        scores["composite_score"] = round(sum(dim_scores) / len(dim_scores), 2)
+            # Compute composite
+            dim_scores = [scores[dim] for dim in QUALITY_DIMENSIONS]
+            scores["composite_score"] = round(sum(dim_scores) / len(dim_scores), 2)
 
-        # Validate triage label
-        if scores.get("triage_label") not in TRIAGE_LABELS:
-            # Recompute from composite
-            c = scores["composite_score"]
-            if c >= 4.0:
-                scores["triage_label"] = "deep"
-            elif c >= 3.0:
-                scores["triage_label"] = "useful"
-            elif c >= 2.0:
-                scores["triage_label"] = "mixed"
-            else:
-                scores["triage_label"] = "shallow"
+            # Validate triage label
+            if scores.get("triage_label") not in TRIAGE_LABELS:
+                # Recompute from composite
+                c = scores["composite_score"]
+                if c >= 4.0:
+                    scores["triage_label"] = "deep"
+                elif c >= 3.0:
+                    scores["triage_label"] = "useful"
+                elif c >= 2.0:
+                    scores["triage_label"] = "mixed"
+                else:
+                    scores["triage_label"] = "shallow"
 
-        return scores
+            return scores
 
-    except json.JSONDecodeError as e:
-        print(f"  JSON parse error: {e}")
-        return None
-    except requests.RequestException as e:
-        print(f"  API error: {e}")
-        return None
-    except (ValueError, KeyError) as e:
-        print(f"  Validation error: {e}")
-        return None
+        except json.JSONDecodeError as e:
+            print(f"  JSON parse error: {e}")
+            return None
+        except requests.RequestException as e:
+            print(f"  API error: {e}")
+            return None
+        except (ValueError, KeyError) as e:
+            print(f"  Validation error: {e}")
+            return None
+
+    return None
 
 
 # ---------------------------------------------------------------------------
