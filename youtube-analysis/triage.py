@@ -641,8 +641,23 @@ def run_batch_triage(
         # Skip already triaged
         already = load_already_triaged()
         meta = meta[~meta["video_id"].isin(already)]
+
+        # Prioritize videos that have already been scored by score.py,
+        # filling remaining slots with unscored videos if needed.
         if sample_size and sample_size < len(meta):
-            meta = meta.sample(n=sample_size, random_state=42)
+            scores_csv = DATA_DIR / "quality-scores.csv"
+            if scores_csv.exists():
+                scored_ids = set(pd.read_csv(scores_csv)["video_id"])
+                scored_pool = meta[meta["video_id"].isin(scored_ids)]
+                unscored_pool = meta[~meta["video_id"].isin(scored_ids)]
+                n_scored = min(sample_size, len(scored_pool))
+                n_unscored = sample_size - n_scored
+                parts = [scored_pool.sample(n=n_scored)] if n_scored else []
+                if n_unscored > 0:
+                    parts.append(unscored_pool.sample(n=min(n_unscored, len(unscored_pool))))
+                meta = pd.concat(parts)
+            else:
+                meta = meta.sample(n=sample_size)
 
     total = len(meta)
     print(f"\nDeep triage: {total} video{'s' if total != 1 else ''}\n")
